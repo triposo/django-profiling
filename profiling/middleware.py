@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import cProfile
+import GreenletProfiler
 from datetime import datetime
 import os, errno
 import logging as log
@@ -14,20 +14,21 @@ class InstrumentMiddleware(object):
         if self._is_path_ignoreable(request, ['/media', '/static']):
             return
         # activate profiling?
-        if 'cprofile' in request.GET:
+        if 'greenletprofile' in request.GET:
             log.debug("activate profiling")
-            request.session['cprofile'] = True
+            request.session['greenletprofile'] = True
         # stop profiling
-        if 'cprofile-stop' in request.GET and request.session.get('cprofile'):
+        if 'greenletprofile-stop' in request.GET and request.session.get('greenletprofile'):
             log.debug("deactivate profiling")
-            request.session['cprofile'] = False
+            request.session['greenletprofile'] = False
             
-        if hasattr(request, 'session') and request.session.get('cprofile'): 
+        if hasattr(request, 'session') and request.session.get('greenletprofile'): 
             if not hasattr(request, 'profiler'):
                 log.debug("start profiling")
-                request.profiler = cProfile.Profile()
             log.debug("enable profiling")
-            request.profiler.enable()
+            GreenletProfiler.set_clock_type('cpu')
+            GreenletProfiler.start()
+
 
     def process_response(self, request, response):
         # operate only on text/html
@@ -38,8 +39,8 @@ class InstrumentMiddleware(object):
             return response
         
         # are we in a profiler run
-        if request.session.get('cprofile') and hasattr(request, 'profiler'): 
-            request.profiler.disable()
+        if request.session.get('greenletprofile'):
+            GreenletProfiler.stop()
             # store the output
             tmpfolder = tempfile.tempdir
             tmpfolder = "%s%s%s" % (tmpfolder, os.sep, "profiler")
@@ -48,16 +49,17 @@ class InstrumentMiddleware(object):
             except OSError, e:
                 if e.errno != errno.EEXIST:
                     raise
-            log_filename = ("%s-%s.pro" % (request.META['REMOTE_ADDR'], datetime.now())).replace(" ", "_").replace(":", "-")
+            log_filename = ("callgrind.%s-%s" % (request.META['REMOTE_ADDR'], datetime.now())).replace(" ", "_").replace(":", "-")
             location = "%s%s%s" % (tmpfolder, os.sep, log_filename)
-            request.profiler.dump_stats(location)
+            stats = GreenletProfiler.get_func_stats()
+            stats.save(log_filename, type='callgrind')
             log.debug("wrote profiling log: %s" % (location))
             log.debug("for request path: %s" % (request.META["PATH_INFO"]))
         
         # stop the profiler run
-        if request.session.get('cprofile') == False and hasattr(request, 'profiler'): 
+        if request.session.get('greenletprofile') == False and hasattr(request, 'profiler'): 
             try:
-                del request.session['cprofile']
+                del request.session['greenletprofile']
                 del request.profiler
                 log.debug("removed profiling from session")
             except KeyError:

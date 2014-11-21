@@ -1,5 +1,7 @@
-Profiling APP
--------------
+This fork supports GreenletProfiler_ instead of cProfile. Useful if you run Django with gevent.
+
+Profiling
+---------
 Your Django became too slow?
 
 Install
@@ -9,13 +11,13 @@ add this to your settings.py
 	INSTALLED_APPS += ['profiling']
 	MIDDLEWARE_CLASSES += ['profiling.middleware.InstrumentMiddleware']
 
-	pip install pyprof2calltree for cachgrinder
+	pip install GreenletProfiler
 
 How to do a profiling run
 --------------------------
-	add a get param: "cprofile" to start profiling
+	add a get param: "greenletprofile" to start profiling
 
-	add a get param: "profile-stop" to stop profiling
+	add a get param: "greenletprofile-stop" to stop profiling
  
 	the log will be in the tmp/profiler folder of your system
 
@@ -38,4 +40,5 @@ additional Profiling Resources:
 -------------------------------
 	TBD
 
+.. _GreenletProfiler: http://greenletprofiler.readthedocs.org/en/latest/
 
