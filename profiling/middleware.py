@@ -57,10 +57,9 @@ class InstrumentMiddleware(object):
             log.debug("for request path: %s" % (request.META["PATH_INFO"]))
         
         # stop the profiler run
-        if request.session.get('greenletprofile') == False and hasattr(request, 'profiler'): 
+        if request.session.get('greenletprofile') == False:
             try:
                 del request.session['greenletprofile']
-                del request.profiler
                 log.debug("removed profiling from session")
             except KeyError:
                 pass
