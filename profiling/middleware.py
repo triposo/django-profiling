@@ -16,7 +16,6 @@ class InstrumentMiddleware(object):
         if self._is_path_ignoreable(request, ['/media', '/static']):
             return
         if not hasattr(request, 'session'):
-            print 'request has no session, this middleware needs to be after the SessionMiddleware'
             log.warn('request has no session, this middleware needs to be after the SessionMiddleware')
             return
 
@@ -44,13 +43,14 @@ class InstrumentMiddleware(object):
             GreenletProfiler.stop()
             # store the output
             tmpfolder = tempfile.tempdir
-            tmpfolder = "%s%s%s" % (tmpfolder, os.sep, "profiler")
+            tmpfolder = os.path.join(tmpfolder, "profiler")
             try:
                 os.makedirs(os.path.normpath(tmpfolder))
             except OSError, e:
                 if e.errno != errno.EEXIST:
                     raise
-            log_filename = ("callgrind.%s-%s" % (request.META['REMOTE_ADDR'], datetime.now())).replace(" ", "_").replace(":", "-")
+            remote_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', 'UNKNOWN'))
+            log_filename = ("callgrind.%s-%s" % (remote_ip, datetime.now())).replace(" ", "_").replace(":", "-")
             location = "%s%s%s" % (tmpfolder, os.sep, log_filename)
             stats = GreenletProfiler.get_func_stats()
             stats.save(log_filename, type='callgrind')
